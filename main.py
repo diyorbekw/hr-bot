@@ -324,6 +324,6 @@ async def process_ad_source(callback: types.CallbackQuery, state: FSMContext):
 async def main():
     await dp.start_polling(bot)
 
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     import asyncio
+#     asyncio.run(main())
