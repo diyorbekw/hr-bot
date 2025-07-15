@@ -27,6 +27,9 @@ class Form(StatesGroup):
     tillar = State()
     boshqa_tillar = State()
     reklama = State()
+    maqsad = State()
+    nega_siz = State()
+
     
 
 # Botni ishga tushirish
@@ -276,19 +279,31 @@ async def process_other_languages(message: types.Message, state: FSMContext):
     await message.answer("Reklama ma'lumotini qayerdan oldingiz?", reply_markup=builder.as_markup())
 
 # Reklama manbasini qabul qilish
+# Reklama manbasini qabul qilish
 @dp.callback_query(F.data.startswith("reklama_"), Form.reklama)
 async def process_ad_source(callback: types.CallbackQuery, state: FSMContext):
     source = callback.data.replace("reklama_", "")
     await state.update_data(reklama=source)
     
+    await state.set_state(Form.maqsad)
+    await callback.message.edit_text("Ishga kirishdan maqsadingiz nima?")
+    await callback.answer()
+
+@dp.message(Form.maqsad)
+async def process_goal(message: types.Message, state: FSMContext):
+    await state.update_data(maqsad=message.text)
+    await state.set_state(Form.nega_siz)
+    await message.answer("Nega aynan sizni ishga olishimiz kerak?")
+
+@dp.message(Form.nega_siz)
+async def process_why_you(message: types.Message, state: FSMContext):
+    await state.update_data(nega_siz=message.text)
+    
     # Barcha ma'lumotlarni yig'ish
     user_data = await state.get_data()
-    
-    # Tillarni formatlash
     tillar = user_data.get("tillar", {})
     tillar_str = ", ".join([f"{k.capitalize()} {v}" for k, v in tillar.items()]) if tillar else "Ko'rsatilmadi"
     
-    # Ma'lumotlarni tayyorlash
     msg = (
         "📝 Yangi HR anketa:\n\n"
         f"👤 Ism: {user_data['ism']}\n"
@@ -305,21 +320,20 @@ async def process_ad_source(callback: types.CallbackQuery, state: FSMContext):
         f"🌐 Tillar: {tillar_str}\n"
         f"➕ Boshqa tillar: {user_data['boshqa_tillar']}\n"
         f"📢 Reklama manbasi: {user_data['reklama']}\n"
-        
+        f"🎯 Maqsadi: {user_data['maqsad']}\n"
+        f"💡 Nega u?: {user_data['nega_siz']}\n"
     )
-    
-    # Admin ga yuborish
-    await bot.send_message(chat_id=ADMIN_CHAT_ID, text=msg)
     await bot.send_message(chat_id=5515940993, text=msg)
+    await bot.send_message(chat_id=ADMIN_CHAT_ID, text=msg)
     
-    # Foydalanuvchiga javob
-    await callback.message.edit_text(
+    
+    await message.answer(
         "Sizning so'rovingiz yuborildi! Tez orada siz bilan bog'lanamiz.\n\n"
         "Agar qo'shimcha savollaringiz bo'lsa, @aloqa_bot ga murojaat qiling."
     )
-    await callback.answer()
     
     await state.clear()
+
 
 async def main():
     await dp.start_polling(bot)
